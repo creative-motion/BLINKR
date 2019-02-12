@@ -1,0 +1,121 @@
+
+#include <FastLED.h>
+
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+
+#define CE 7
+#define CSN 8
+
+#define BAUDRATE 57600
+
+RF24 radio(CE, CSN);
+const byte address[6] = "00001";
+
+int left_on = 0;
+int right_on = 0;
+int center_on = 0;
+
+int payload = 0;
+
+#define DATA_PIN_CENTER 3
+#define DATA_PIN_LEFT 4
+#define DATA_PIN_RIGHT 5
+
+#define BLINK_LEFT 9
+#define BLINK_CENTER 3
+#define BLINK_RIGHT 4
+
+#define NO_LEDS_CENTER 36
+#define NO_LEDS_LEFT 33
+#define NO_LEDS_RIGHT 33
+
+CRGB leds_mid[NO_LEDS_CENTER];
+CRGB leds_left[NO_LEDS_LEFT];
+CRGB leds_right[NO_LEDS_RIGHT];
+
+void set_leds() {
+  FastLED.addLeds<NEOPIXEL, DATA_PIN_LEFT>(leds_left, NO_LEDS_LEFT);
+  FastLED.addLeds<NEOPIXEL, DATA_PIN_RIGHT>(leds_right, NO_LEDS_RIGHT);
+  FastLED.addLeds<NEOPIXEL, DATA_PIN_CENTER>(leds_mid, NO_LEDS_CENTER);
+}
+
+void set_radio() {
+  radio.begin();
+  radio.openReadingPipe(0, address);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.startListening();
+}
+
+void set_leds_color(CRGB leds[], CRGB color, uint16_t no_leds) {
+  uint16_t index;
+  for (index = 0; index < no_leds; index++) {
+    leds[index] = color;
+  }
+  FastLED.show();
+}
+
+void light_all(CRGB color) {
+  set_leds_color(leds_left, color, NO_LEDS_LEFT);
+  set_leds_color(leds_right, color, NO_LEDS_RIGHT);
+  set_leds_color(leds_mid, color, NO_LEDS_CENTER); 
+}
+
+void light_left(CRGB color) {
+  set_leds_color(leds_left, color, NO_LEDS_LEFT);
+}
+
+void light_right(CRGB color) {
+  set_leds_color(leds_right, color, NO_LEDS_RIGHT);
+}
+
+void test_leds(){
+
+  int counter;
+  for (counter = 0; counter <= 10; counter++) {
+    light_all(CRGB::Red);
+    delay(400);
+    light_all(CRGB::Black);
+    delay(200);
+  }
+  
+  for (counter = 0; counter <= 10; counter++) {
+    light_left(CRGB::Red);
+    delay(300);
+    light_left(CRGB::Black);
+    
+    light_right(CRGB::Red);
+    delay(300);
+    light_right(CRGB::Black);
+  }  
+}
+
+void setup() {
+  // put your setup code here, to run once:
+  Serial.begin(BAUDRATE);
+  set_radio();
+  set_leds();
+  test_leds();
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  if (radio.available()) {
+    radio.read(&payload, sizeof(int));
+    Serial.println(payload);
+    if (payload == BLINK_LEFT) {
+      light_left(CRGB::Yellow);
+    } else if (payload == BLINK_RIGHT) {
+      light_right(CRGB::Yellow);
+    } else if (payload == BLINK_CENTER) {
+      light_all(CRGB::Yellow);
+    } else {
+      light_all(CRGB::Black);
+    }
+  } else {
+    Serial.println("NO DATA");
+  }
+    delay(200);
+
+}
