@@ -1,0 +1,95 @@
+
+#include <SPI.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+
+#define LEFT 9
+#define CENTER 3
+#define RIGHT 4
+#define OFF 0
+#define PURGATORY -1
+#define ON 1
+
+#define CE 7
+#define CSN 8
+
+#define BAUDRATE 57600
+
+RF24 radio(CE, CSN);
+const byte address[6] = "00001";
+
+int left_state = OFF;
+int right_state = OFF;
+int center_state = OFF;
+
+int payload = 0;
+int prev_payload = 0;
+// 0 - no button pressed; 1 - button pressed
+int buttons_state = OFF;
+int blink_leds = 0;
+
+void set_pins() {
+  pinMode(LEFT, INPUT);
+  pinMode(CENTER, INPUT);
+  pinMode(RIGHT, INPUT);
+}
+
+void set_radio() {
+  radio.begin();
+  radio.openWritingPipe(address);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.stopListening();
+}
+
+void reset_states() {
+  left_state = OFF;
+  center_state = OFF;
+  right_state = OFF;
+}
+
+int set_payload_value() {
+  int left = digitalRead(LEFT);
+  int center = digitalRead(CENTER);
+  int right = digitalRead(RIGHT);
+
+  if (left) {
+    payload = LEFT;
+  } else if (center) {
+    payload = CENTER;
+  } else if (right) {
+    payload = RIGHT;
+  } else {
+    payload = OFF;  
+  }
+}
+
+void recheck_pins_state() {
+  
+}
+
+void set_payload() {
+
+  
+}
+
+void setup() {
+  Serial.begin(BAUDRATE);
+  Serial.println(">>>>>>>>>>>> SETUP  <<<<<<<<<<<<<");
+  
+  set_pins();
+  set_radio();
+
+}
+
+void loop() {
+  Serial.print("Before ");
+  Serial.println(payload);
+  set_payload_value();
+  // TODO : Must find a way to optimise the sending. 
+  //        When is OFF is do not send more than twice
+    Serial.print("After ");
+
+  Serial.println(payload);
+  radio.write(&payload, sizeof(int));
+  delay(200);
+}
